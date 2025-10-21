@@ -15,6 +15,9 @@ CREATE TYPE public.user_role AS ENUM ('user', 'moderator', 'admin');
 -- User status enum
 CREATE TYPE public.user_status AS ENUM ('active', 'banned', 'pending', 'inactive');
 
+-- Post status enum
+CREATE TYPE public.post_status AS ENUM ('published', 'draft', 'review', 'hidden', 'deleted');
+
 -- =============================================================================
 -- TABLES
 -- =============================================================================
@@ -39,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   caption TEXT NOT NULL,
   image_url TEXT NOT NULL,
+  status public.post_status NOT NULL DEFAULT 'published',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -62,6 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 -- Posts indexes
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON public.posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_status ON public.posts(status);
 
 -- Likes indexes
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON public.likes(post_id);

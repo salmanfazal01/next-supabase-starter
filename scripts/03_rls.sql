@@ -24,11 +24,25 @@ CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (au
 -- Anyone can view all posts
 CREATE POLICY "posts_select_all" ON public.posts FOR SELECT USING (true);
 
--- Authenticated users can create posts
-CREATE POLICY "posts_insert_own" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Authenticated users can create posts (regular users can only set published/hidden status)
+CREATE POLICY "posts_insert_own" ON public.posts FOR INSERT WITH CHECK (
+  auth.uid() = user_id AND (
+    public.get_user_role(auth.uid()) IN ('moderator', 'admin') OR
+    status IN ('published', 'hidden')
+  )
+);
 
 -- Users can update their own posts
-CREATE POLICY "posts_update_own" ON public.posts FOR UPDATE USING (auth.uid() = user_id);
+-- Regular users can only change status to 'published' or 'hidden'
+-- Admins/moderators can set any status
+CREATE POLICY "posts_update_own" ON public.posts FOR UPDATE 
+  USING (auth.uid() = user_id)
+  WITH CHECK (
+    auth.uid() = user_id AND (
+      public.get_user_role(auth.uid()) IN ('moderator', 'admin') OR
+      status IN ('published', 'hidden')
+    )
+  );
 
 -- Users can delete their own posts
 CREATE POLICY "posts_delete_own" ON public.posts FOR DELETE USING (auth.uid() = user_id);

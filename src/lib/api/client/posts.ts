@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/client";
-import type { PostWithDetails } from "@/types/database/posts";
+import type { PostStatusType, PostWithDetails } from "@/types/database/posts";
 
-export async function createPost(caption: string, imageFile: File) {
+export async function createPost(
+  caption: string,
+  imageFile: File,
+  status: PostStatusType = "published"
+) {
   const supabase = createClient();
 
   const {
@@ -33,6 +37,7 @@ export async function createPost(caption: string, imageFile: File) {
       user_id: user.id,
       image_url: publicUrl,
       caption,
+      status,
     })
     .select()
     .single();
@@ -72,9 +77,128 @@ export async function fetchPosts(
   const { data, error } = await supabase
     .from("posts_with_details")
     .select("*")
+    .eq("status", "published") // Only show published posts on homepage
     .order("created_at", { ascending: false })
     .range(page * limit, (page + 1) * limit - 1);
 
   if (error) throw error;
   return data || [];
+}
+
+export async function fetchUserPosts(
+  page = 0,
+  limit = 10
+): Promise<PostWithDetails[]> {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Users can see all their own posts (including drafts, hidden, etc.)
+  const { data, error } = await supabase
+    .from("posts_with_details")
+    .select("*")
+    .eq("user_id", user?.id)
+    .order("created_at", { ascending: false })
+    .range(page * limit, (page + 1) * limit - 1);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchMyPosts(
+  limit: number,
+  offset: number
+): Promise<PostWithDetails[]> {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase
+    .from("posts_with_details")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchMyPostsCount(): Promise<number> {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { count, error } = await supabase
+    .from("posts")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function fetchAllPosts(
+  limit: number,
+  offset: number
+): Promise<PostWithDetails[]> {
+  const supabase = createClient();
+
+  // Admin view - shows all posts regardless of status
+  const { data, error } = await supabase
+    .from("posts_with_details")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchPostsCount(): Promise<number> {
+  const supabase = createClient();
+
+  // Count all posts (used for admin view)
+  const { count, error } = await supabase
+    .from("posts")
+    .select("*", { count: "exact", head: true });
+
+  if (error) throw error;
+  return count || 0;
+}
+
+export async function updatePostStatus(postId: string, status: PostStatusType) {
+  const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", postId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }

@@ -1,23 +1,36 @@
 import ImageUploader, {
   type ImageUploaderProps,
 } from "@/components/ui/image-uploader";
+import AvatarImageUploader, {
+  type AvatarImageUploaderProps,
+} from "@/components/ui/avatar-image-uploader";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { Controller, useFormContext } from "react-hook-form";
 
-interface FormImageUploadProps
-  extends Omit<ImageUploaderProps, "files" | "onFilesChange"> {
+type BaseFormImageUploadProps = {
   name: string;
   className?: string;
   label?: string;
   description?: string;
-}
+};
+
+type FormImageUploadProps =
+  | (BaseFormImageUploadProps &
+      Omit<ImageUploaderProps, "files" | "onFilesChange"> & {
+        type?: "default";
+      })
+  | (BaseFormImageUploadProps &
+      Omit<AvatarImageUploaderProps, "file" | "onFileChange"> & {
+        type: "avatar";
+      });
 
 const FormImageUpload: React.FC<FormImageUploadProps> = ({
   name,
   className,
   label,
   description,
+  type = "default",
   ...props
 }) => {
   const {
@@ -28,7 +41,7 @@ const FormImageUpload: React.FC<FormImageUploadProps> = ({
   const error = errors[name];
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn(type === "avatar" ? "w-fit" : "w-full", className)}>
       <Controller
         name={name}
         control={control}
@@ -43,15 +56,35 @@ const FormImageUpload: React.FC<FormImageUploadProps> = ({
               </label>
             )}
 
-            <ImageUploader
-              {...props}
-              files={field.value || []}
-              onFilesChange={field.onChange}
-              className={cn(
-                error && "border-destructive focus-visible:ring-destructive/50"
-              )}
-              aria-invalid={error ? "true" : "false"}
-            />
+            {type === "avatar" ? (
+              <AvatarImageUploader
+                {...(props as Omit<
+                  AvatarImageUploaderProps,
+                  "file" | "onFileChange"
+                >)}
+                file={field.value || null}
+                onFileChange={field.onChange}
+                className={cn(
+                  error &&
+                    "border-destructive focus-visible:ring-destructive/50"
+                )}
+                aria-invalid={error ? "true" : "false"}
+              />
+            ) : (
+              <ImageUploader
+                {...(props as Omit<
+                  ImageUploaderProps,
+                  "files" | "onFilesChange"
+                >)}
+                files={field.value || []}
+                onFilesChange={field.onChange}
+                className={cn(
+                  error &&
+                    "border-destructive focus-visible:ring-destructive/50"
+                )}
+                aria-invalid={error ? "true" : "false"}
+              />
+            )}
 
             {description && !error && (
               <p className="text-muted-foreground text-sm">{description}</p>

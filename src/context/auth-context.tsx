@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { createContext, useContextSelector } from "use-context-selector";
 
 interface AuthContextType {
+  mounted: boolean;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
@@ -29,10 +30,15 @@ export function AuthProvider({
   initialUser,
   initialProfile,
 }: AuthProviderProps) {
+  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(initialUser);
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const refreshProfile = async () => {
     if (!user) {
@@ -90,6 +96,7 @@ export function AuthProvider({
   return (
     <AuthContext.Provider
       value={{
+        mounted,
         user,
         profile,
         loading,

@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Label } from "../ui/label";
 
 interface FormTextFieldProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -9,6 +12,7 @@ interface FormTextFieldProps
   className?: string;
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
+  label?: string;
 }
 
 const FormTextField: React.FC<FormTextFieldProps> = ({
@@ -16,6 +20,7 @@ const FormTextField: React.FC<FormTextFieldProps> = ({
   className,
   startAdornment,
   endAdornment,
+  label,
   ...props
 }) => {
   const {
@@ -27,13 +32,19 @@ const FormTextField: React.FC<FormTextFieldProps> = ({
 
   return (
     <div className="w-full">
+      {label && (
+        <Label htmlFor={name} className="mb-2.5 pl-1">
+          {label}
+        </Label>
+      )}
+
       <Controller
         name={name}
         control={control}
         render={({ field }) => (
           <div className="relative">
             {startAdornment && (
-              <div className="absolute top-1/2 left-1 z-10 -translate-y-1/2">
+              <div className="absolute top-1/2 left-3 z-10 -translate-y-1/2">
                 {startAdornment}
               </div>
             )}
@@ -44,14 +55,14 @@ const FormTextField: React.FC<FormTextFieldProps> = ({
                 error && "border-destructive focus-visible:ring-destructive/50",
                 startAdornment && "pl-10",
                 endAdornment && "pr-10",
-                className,
+                className
               )}
               aria-invalid={error ? "true" : "false"}
               {...props}
             />
 
             {endAdornment && (
-              <div className="absolute top-1/2 right-1 z-10 -translate-y-1/2">
+              <div className="absolute top-1/2 right-3 z-10 -translate-y-1/2">
                 {endAdornment}
               </div>
             )}

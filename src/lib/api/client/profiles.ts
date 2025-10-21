@@ -1,4 +1,3 @@
-import { useAuth } from "@/context/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import {
   UserRoleEnum,

@@ -27,6 +27,9 @@ CREATE TYPE public.user_role AS ENUM ('user', 'moderator', 'admin');
 -- User status enum
 CREATE TYPE public.user_status AS ENUM ('active', 'banned', 'pending', 'inactive');
 
+-- Post status enum
+CREATE TYPE public.post_status AS ENUM ('published', 'draft', 'review', 'hidden', 'deleted');
+
 -- =============================================================================
 -- TABLES
 -- =============================================================================
@@ -51,6 +54,7 @@ CREATE TABLE IF NOT EXISTS public.posts (
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   caption TEXT NOT NULL,
   image_url TEXT NOT NULL,
+  status public.post_status NOT NULL DEFAULT 'published',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -74,6 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles(username);
 -- Posts indexes
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON public.posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON public.posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_status ON public.posts(status);
 
 -- Likes indexes
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON public.likes(post_id);
@@ -194,11 +199,25 @@ CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (au
 -- Anyone can view all posts
 CREATE POLICY "posts_select_all" ON public.posts FOR SELECT USING (true);
 
--- Authenticated users can create posts
-CREATE POLICY "posts_insert_own" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Authenticated users can create posts (regular users can only set published/hidden status)
+CREATE POLICY "posts_insert_own" ON public.posts FOR INSERT WITH CHECK (
+  auth.uid() = user_id AND (
+    public.get_user_role(auth.uid()) IN ('moderator', 'admin') OR
+    status IN ('published', 'hidden')
+  )
+);
 
 -- Users can update their own posts
-CREATE POLICY "posts_update_own" ON public.posts FOR UPDATE USING (auth.uid() = user_id);
+-- Regular users can only change status to 'published' or 'hidden'
+-- Admins/moderators can set any status
+CREATE POLICY "posts_update_own" ON public.posts FOR UPDATE 
+  USING (auth.uid() = user_id)
+  WITH CHECK (
+    auth.uid() = user_id AND (
+      public.get_user_role(auth.uid()) IN ('moderator', 'admin') OR
+      status IN ('published', 'hidden')
+    )
+  );
 
 -- Users can delete their own posts
 CREATE POLICY "posts_delete_own" ON public.posts FOR DELETE USING (auth.uid() = user_id);

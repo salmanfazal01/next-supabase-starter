@@ -1,3 +1,4 @@
+import { useAuth } from "@/context/auth-context";
 import {
   countProfiles,
   fetchProfile,
@@ -50,18 +51,21 @@ export function useSearchProfiles(query: string, enabled = true) {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
+  const _userId = useAuth((state) => state.user?.id!);
+  const refreshProfile = useAuth((state) => state.refreshProfile);
 
   return useMutation({
     mutationFn: ({
       userId,
       updates,
     }: {
-      userId: string;
       updates: Partial<BaseProfile>;
-    }) => updateProfile(userId, updates),
+      userId?: string;
+    }) => updateProfile(userId || _userId, updates),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["profile", data.id] });
-      queryClient.invalidateQueries({ queryKey: ["user"] });
+      // queryClient.invalidateQueries({ queryKey: ["profile", data.id] });
+      // queryClient.invalidateQueries({ queryKey: ["user"] });
+      refreshProfile();
     },
   });
 }
